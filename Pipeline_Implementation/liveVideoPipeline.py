@@ -1,9 +1,13 @@
 from Pipeline_Implementation.Dehazing_Models.main import main, Arguments
-from Pipeline_Implementation.Image_Processing.liveFrameProcessing import frameDownscaler, imageSharpner
+from Pipeline_Implementation.Image_Processing.liveFrameProcessing import (
+    frameDownscaler,
+    imageSharpner,
+)
+from Pipeline_Implementation.Detection_Models.objectDetection import detectAndAnnotate
 import os
 
 
-def framePipeline(frame, frame_id, userResolution, userInterpolation):
+def framePipeline(frame, frame_id, userResolution, userInterpolation, onlyDetection):
     current_file_dir = os.path.dirname(__file__)
     frameDownscaler(
         frame,
@@ -15,10 +19,18 @@ def framePipeline(frame, frame_id, userResolution, userInterpolation):
         ),
     )
     # This is the dehazing function which knows where to dehaze from
-    args = Arguments()
-    main(args)
-    
+    if onlyDetection == False:
+        args = Arguments()
+        main(args)
+        newFrame = imageSharpner(
+            os.path.join(current_file_dir, "Dehazing_Models", "results"),
+        )
+
     newFrame = imageSharpner(
-        os.path.join(current_file_dir, "Dehazing_Models", "results"),
+        os.path.join(
+            current_file_dir, "Dehazing_Models", "reside-outdoor", "test", "hazy"
+        )
     )
-    return newFrame
+
+    annotatedFrame = detectAndAnnotate(newFrame)
+    return annotatedFrame

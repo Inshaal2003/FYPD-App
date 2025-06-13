@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import (
     QStyle,
     QVBoxLayout,
     QComboBox,
-    QSizePolicy,
 )
 from PyQt6.QtGui import QIcon, QPixmap, QImage
 from PyQt6.QtCore import QTimer, QThread, pyqtSignal
@@ -21,16 +20,17 @@ import queue
 class AIThread(QThread):
     finished = pyqtSignal(np.ndarray)  # Signal to emit processed frame and its ID
 
-    def __init__(self, frame, frame_id, userResolution, userInterpolation):
+    def __init__(self, frame, frame_id, userResolution, userInterpolation, onlyDetection):
         super().__init__()
         self.frame = frame
         self.frame_id = frame_id
         self.userResolution = userResolution
         self.userInterpolation = userInterpolation
+        self.onlyDetection = onlyDetection
 
     def run(self):
         outputFrame = framePipeline(
-            self.frame, self.frame_id, self.userResolution, self.userInterpolation
+            self.frame, self.frame_id, self.userResolution, self.userInterpolation, self.onlyDetection
         )  # Process the frame
         self.finished.emit(outputFrame)
 
@@ -47,7 +47,7 @@ class Window(QWidget):
         self.is_processing = False  # Flag to track if AIThread is running
         self.pauseCapture = False  # Flag to track the pause and play state.
         self.cap = None  # Flag to set the cap object to none
-
+        self.onlyDetection = False
         self.frame_queue = queue.Queue()  # Queue to store frames
 
         self.createPlayer()
@@ -55,10 +55,6 @@ class Window(QWidget):
     def createPlayer(self):
         self.frameViewer = QLabel(self)
         self.frameViewer.setScaledContents(True)
-        self.frameViewer.setSizePolicy(
-            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
-        )
-
         self.capture_timer = QTimer(self)
         self.process_timer = QTimer(self)
 
@@ -98,6 +94,9 @@ class Window(QWidget):
         )
         self.interPolationDropdown.activated.connect(self.currentValue)
 
+        self.onlyDetectionBtn = QPushButton("Only Detection")
+        self.onlyDetectionBtn.clicked.connect(self.onlyDetectionMethod)
+
         vboxLayout = QVBoxLayout()
         hboxLayoutOne = QHBoxLayout()
         hboxLayoutTwo = QHBoxLayout()
@@ -110,6 +109,7 @@ class Window(QWidget):
         hboxLayoutTwo.addWidget(self.interPolationDropdown)
         hboxLayoutTwo.addWidget(self.resolutionLabel)
         hboxLayoutTwo.addWidget(self.resolutionDropdown)
+        hboxLayoutTwo.addWidget(self.onlyDetectionBtn)
 
         vboxLayout.addWidget(self.frameViewer)
         vboxLayout.addLayout(hboxLayoutOne)
@@ -182,11 +182,11 @@ class Window(QWidget):
             frame, frame_id = self.frame_queue.get()
             # Start the FrameSaverThread
             self.processFrameWithAI(
-                frame, frame_id, self.userResolution, self.userInterpolation
+                frame, frame_id, self.userResolution, self.userInterpolation, self.onlyDetection
             )
 
-    def processFrameWithAI(self, frame, frame_id, userResolution, userInterpolation):
-        self.aiThread = AIThread(frame, frame_id, userResolution, userInterpolation)
+    def processFrameWithAI(self, frame, frame_id, userResolution, userInterpolation, onlyDetection):
+        self.aiThread = AIThread(frame, frame_id, userResolution, userInterpolation, onlyDetection)
         self.aiThread.finished.connect(self.displayProcessedFrame)
         self.aiThread.start()
 
@@ -210,6 +210,12 @@ class Window(QWidget):
         else:
             self.showFullScreen()
             self.fullScreenBtn.setText("Minimize Screen")
+
+    def onlyDetectionMethod(self):
+        if self.onlyDetection == False:
+            self.onlyDetection = True
+        elif self.onlyDetection == True:
+            self.onlyDetection = False
 
     def closeEvent(self, event):
         if self.cap is not None:
