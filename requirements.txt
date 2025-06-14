@@ -1,0 +1,14 @@
+einops==0.8.1
+numpy==2.3.0
+opencv_contrib_python==4.10.0.84
+opencv_python==4.10.0.84
+opencv_python_headless==4.10.0.84
+Pillow==11.2.1
+PyQt6==6.9.1
+PyQt6_sip==13.10.0
+rfdetr==1.1.0
+skimage==0.0
+supervision==0.25.1
+torch==2.6.0
+torchvision==0.21.0
+warmup_scheduler==0.3
